@@ -1,28 +1,20 @@
-import React, {ChangeEvent, KeyboardEvent, useEffect, useRef, useState, UIEvent} from 'react';
+import React, {ChangeEvent, KeyboardEvent, UIEvent, useEffect, useRef, useState} from 'react';
 import './App.css';
-import {io} from 'socket.io-client';
+import {useAppDispatch, useAppSelector} from './hooks';
+import {sendNewMessage, setClientName, startConnection, stopConnection} from './chatSlice';
 
-type Message = {
-    id: string
-    message: string
-    user: {
-        id: string,
-        name: string
-    }
-}
-
-// const socket = io('https://chat-socket-io-back-production.up.railway.app/');
-const socket = io('http://localhost:5000/');
 
 function App() {
 
 
     const [text, setText] = useState('')
     const [name, setName] = useState('')
-    const [messages, setMessages] = useState<Message[]>([])
     const [autoScrollMode, setAutoScrollMode] = useState(true)
     const [lastScrollTop, setLastScrollTop] = useState(0)
     const messagesAnchorRef = useRef<HTMLDivElement>(null)
+
+    const messages = useAppSelector(state => state.chat.messages)
+    const dispatch = useAppDispatch()
 
     const onMessageChangeHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
         setText(e.currentTarget.value)
@@ -32,11 +24,11 @@ function App() {
     }
 
     const onMessageSendHandler = () => {
-        socket.emit('client-message-sent', text)
+        dispatch(sendNewMessage(text))
         setText('')
     }
     const onNameSetHandler = () => {
-        socket.emit('client-name-set', name)
+        dispatch(setClientName(name))
     }
 
     const onEnterDownHandler = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -53,13 +45,13 @@ function App() {
     }
 
     useEffect(() => {
-        socket.on('init-messages-published', (messages: Message[]) => {
-            setMessages(messages)
-        })
-        socket.on('new-message-sent', (newMessage: Message) => {
-            setMessages((prevMessages) => [...prevMessages, newMessage])
-        })
-    }, [])
+
+        dispatch(startConnection())
+
+        return () => {
+            dispatch(stopConnection())
+        }
+    }, [dispatch])
 
     useEffect(() => {
         if (autoScrollMode) {
