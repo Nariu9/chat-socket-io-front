@@ -1,4 +1,4 @@
-import React, {ChangeEvent, useEffect, useState, KeyboardEvent} from 'react';
+import React, {ChangeEvent, KeyboardEvent, useEffect, useRef, useState, UIEvent} from 'react';
 import './App.css';
 import {io} from 'socket.io-client';
 
@@ -18,19 +18,38 @@ function App() {
 
 
     const [text, setText] = useState('')
+    const [name, setName] = useState('')
     const [messages, setMessages] = useState<Message[]>([])
+    const [autoScrollMode, setAutoScrollMode] = useState(true)
+    const [lastScrollTop, setLastScrollTop] = useState(0)
+    const messagesAnchorRef = useRef<HTMLDivElement>(null)
 
-    const onchangeHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const onMessageChangeHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
         setText(e.currentTarget.value)
     }
+    const onNameChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+        setName(e.currentTarget.value)
+    }
 
-    const onClickHandler = () => {
+    const onMessageSendHandler = () => {
         socket.emit('client-message-sent', text)
         setText('')
     }
+    const onNameSetHandler = () => {
+        socket.emit('client-name-set', name)
+    }
 
     const onEnterDownHandler = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        e.key === 'Enter' && onClickHandler()
+        e.key === 'Enter' && onMessageSendHandler()
+    }
+
+    const onScrollHandler = (e: UIEvent<HTMLDivElement>) => {
+        if (e.currentTarget.scrollTop > lastScrollTop) {
+            setAutoScrollMode(true)
+        } else {
+            setAutoScrollMode(false)
+        }
+        setLastScrollTop(e.currentTarget.scrollTop)
     }
 
     useEffect(() => {
@@ -42,18 +61,31 @@ function App() {
         })
     }, [])
 
+    useEffect(() => {
+        if (autoScrollMode) {
+            messagesAnchorRef.current?.scrollIntoView({behavior: 'smooth'})
+        }
+    }, [autoScrollMode, messages])
+
     return (
         <div className="App">
             <div className="wrapper">
-                <div className="messages">
+                <div className="messages" onScroll={onScrollHandler}>
                     {messages.map(m => <div key={m.id}>
                         <b>{m.user.name}: </b> {m.message}
                         <hr/>
                     </div>)}
+                    <div ref={messagesAnchorRef}></div>
                 </div>
-                <div className="textarea">
-                    <textarea value={text} onChange={onchangeHandler} onKeyDown={onEnterDownHandler}/>
-                    <button onClick={onClickHandler}>Send</button>
+                <div className="inputs">
+                    <div>
+                        <input type="text" value={name} onChange={onNameChangeHandler}/>
+                        <button onClick={onNameSetHandler}>Set name</button>
+                    </div>
+                    <div>
+                        <textarea value={text} onChange={onMessageChangeHandler} onKeyDown={onEnterDownHandler}/>
+                        <button onClick={onMessageSendHandler}>Send</button>
+                    </div>
                 </div>
             </div>
         </div>
