@@ -11,3 +11,29 @@
     width: 300px;
     overflow-y: scroll;
 }
+
+.nameBlock {
+    margin: 10px 0;
+}
+
+.nameBlock button {
+    margin-left: 10px;
+}
+
+.name {
+    cursor: pointer;
+}
+
+.messageBlock {
+    display: flex;
+    flex-direction: column;
+}
+
+.messageBlock textarea {
+    resize: vertical;
+}
+
+.messageBlock button {
+    margin-top: 10px;
+    align-self: center;
+}
